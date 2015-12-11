@@ -41,9 +41,9 @@ namespace DocuWarePlatform.NETClient
 
             platformClient = new PlatformClient(DocuWareServerUrl, organizationName, userName, userPassword);
 
-            basket = platformClient.GetFileCabinet(basketName, isBasket: true);
+            basket = platformClient.GetDocumentTray(basketName);
 
-            fileCabinet = platformClient.GetFileCabinet(fileCabinetName, isBasket: false);
+            fileCabinet = platformClient.GetFileCabinet(fileCabinetName);
 
             var searchDialog =
                 fileCabinet.GetDialogInfosFromSearchesRelation()
