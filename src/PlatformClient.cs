@@ -101,10 +101,13 @@ namespace DocuWarePlatform.NETClient
         /// <summary>
         /// This is the most effective way to get the total amount or documents in a file cabinet or document tray (basket).
         /// </summary>
-        /// <param name="target"> File cabinet or document tray (basket). </param>
+        /// <param name="targetName"> The name if file cabinet or document tray (basket). </param>
+        /// <param name="isDocumentTray"> Specifies if the target is a document tray (basket). </param>
         /// <returns> Total amount of documents. </returns>
-        public int GetTotalAmountOfDocuments(FileCabinet target)
+        public int GetTotalAmountOfDocuments(string targetName, bool isDocumentTray)
         {
+            var target = isDocumentTray ? GetDocumentTray(targetName) : GetFileCabinet(targetName);
+            
             var searchDialog = getDefaultSearchDialog(target);
 
             return searchDialog.GetCountResultFromCountRelation().Group.First().Count;
@@ -112,10 +115,13 @@ namespace DocuWarePlatform.NETClient
 
 
         /// <summary> This is the most effective way to get all documents at once. </summary>
-        /// <param name="target"> File cabinet or document tray (basket). </param>
+        /// <param name="targetName"> The name if file cabinet or document tray (basket). </param>
+        /// <param name="isDocumentTray"> Specifies if the target is a document tray (basket). </param>
         /// <returns> All documents currently stored in the location specified. </returns>
-        public List<Document> GetAllDocuments(FileCabinet target)
+        public List<Document> GetAllDocuments(string targetName, bool isDocumentTray)
         {
+            var target = isDocumentTray ? GetDocumentTray(targetName) : GetFileCabinet(targetName);
+
             // Check optional parameters of the method GetFromDocumentsForDocumentsQueryResultAsync.
             // Using them you can specify:
             //    * fields to retrieve
@@ -128,54 +134,40 @@ namespace DocuWarePlatform.NETClient
 
 
         /// <summary> The documents are returned in pages of the size specified by maxCount. </summary>
-        /// <param name="target"> File cabinet or document tray (basket) to get documents from. </param>
+        /// <param name="targetName"> The name if file cabinet or document tray (basket). </param>
+        /// <param name="isDocumentTray"> Specifies if the target is a document tray (basket). </param>
         /// <param name="start"> The number of documents to be skipped, that is, the result list does not contain the first "start" documents. </param>
         /// <param name="maxCount"> The maximum number of items per result page. The server returns at most maxCount items per page. The actual number of items returned can be smaller.</param>
         /// <returns> TODO </returns>
-        public DocumentsQueryResult GetDocumentsUsingPaging(FileCabinet target, int start = 0, int maxCount = 3)
+        public DocumentsQueryResult GetDocumentsUsingPaging(string targetName, bool isDocumentTray, int start = 0, int maxCount = 3)
         {
+            var target = isDocumentTray ? GetDocumentTray(targetName) : GetFileCabinet(targetName);
+
             return this.connector.GetFromDocumentsForDocumentsQueryResultAsync(target.Id, start: start, count: maxCount).Result.Content;
         }
 
 
         /// <summary> Use it if you are searching for documents. </summary>
-        /// <param name="target"> File cabinet of document tray (basket) to search documents in.</param>
+        /// <param name="targetName"> The name if file cabinet or document tray (basket). </param>
+        /// <param name="isDocumentTray"> Specifies if the target is a document tray (basket). </param>
         /// <param name="query"> Searching criteria. </param>
         /// <returns> List containing documents found. </returns>
-        public List<Document> GetDocumentsByQuery(FileCabinet target, DialogExpression query)
+        public List<Document> GetDocumentsByQuery(string targetName, bool isDocumentTray, DialogExpression query)
         {
+            var target = isDocumentTray ? GetDocumentTray(targetName) : GetFileCabinet(targetName);
             var searchDialog = getDefaultSearchDialog(target);
 
             return runQueryForDocuments(searchDialog, query).Items;
         }
 
 
-        /// <summary> Shows how to downloads document's thumbnail. </summary>
-        public void DownloadDocumentThumbnail(Document document)
-        {
-            var thumbnail = document.GetStreamFromThumbnailRelation();
-            using (var thumbnailFile = File.Create(@"C:\Temp\MyThumbnail.png"))
-            {
-                thumbnail.CopyTo(thumbnailFile);
-            }
-        }
-
-
-        /// <summary> Shows how to delete documents. </summary>
-        public void DeleteDocuments(List<Document> documentsToDelete)
-        {
-            foreach (var document in documentsToDelete)
-                document.DeleteSelfRelation();
-        }
-
-
         /// <summary> Moves the document from file cabinet to document tray. </summary>
         /// <remarks> This implementation does not preserve index values when moving the document. </remarks>
         /// <param name="document"> Document to be moved. </param>
-        /// <param name="fileCabinetId"> File cabinet where document is currently located. </param>
+        /// <param name="fileCabinet"> File cabinet where document is currently located. </param>
         /// <param name="documentTray"> Document tray document has to be moved into. </param>
         /// <returns> TODO </returns>
-        public DocumentsQueryResult MoveDocumentFromFileCabinetToBasketDropIndexValues(Document document, string fileCabinetId, FileCabinet documentTray)
+        public DocumentsQueryResult MoveDocumentFromFileCabinetToBasketDropIndexValues(Document document, FileCabinet fileCabinet, FileCabinet documentTray)
         {
             var sourceDocument = new Document
             {
@@ -189,7 +181,7 @@ namespace DocuWarePlatform.NETClient
             {
                 Documents = new List<Document>() { sourceDocument },
                 KeepSource = false,    // the document will be moved, NOT copied
-                SourceFileCabinetId = fileCabinetId
+                SourceFileCabinetId = fileCabinet.Id
             };
 
             //
@@ -201,17 +193,17 @@ namespace DocuWarePlatform.NETClient
 
         /// <summary> Moves the document from file cabinet to document tray. </summary>
         /// <remarks> This implementation preserves index values when moving the document. </remarks>
-        /// <param name="documentId"> Id of the document to be moved. </param>
-        /// <param name="fileCabinetId"> File cabinet where document is currently located. </param>
+        /// <param name="document"> Document to be moved. </param>
+        /// <param name="fileCabinet"> File cabinet where document is currently located. </param>
         /// <param name="documentTray"> Document tray document has to be moved into. </param>
         /// <returns> TODO </returns>
-        public DocumentsQueryResult MoveDocumentFromFileCabinetToBasket(int documentId, string fileCabinetId, FileCabinet documentTray)
+        public DocumentsQueryResult MoveDocumentFromFileCabinetToBasket(Document document, FileCabinet fileCabinet, FileCabinet documentTray)
         {
             var transferInfo = new FileCabinetTransferInfo()
             {
                 KeepSource = false,   // the document will be moved, NOT copied
-                SourceDocId = new List<int> { documentId },
-                SourceFileCabinetId = fileCabinetId
+                SourceDocId = new List<int> { document.Id},
+                SourceFileCabinetId = fileCabinet.Id
             };
 
             return documentTray.PostToTransferRelationForDocumentsQueryResult(transferInfo);
@@ -219,17 +211,17 @@ namespace DocuWarePlatform.NETClient
 
 
         /// <summary> Shows how to store a document into file cabinet using index values provided. </summary>
-        /// <param name="documentId"> Id of the document to be stored. </param>
-        /// <param name="documentTrayId"> Id of the document tray (basket) document is currently stored in. </param>
+        /// <param name="document"> Id of the document to be stored. </param>
+        /// <param name="documentTray"> Document tray (basket) document is currently stored in. </param>
         /// <param name="fileCabinet"> File cabinet to store document into. </param>
         /// <param name="indexValues"> Index values to apply to the document when storing. </param>
         /// <param name="keepDocumentInDocumentTray"> Specifies if document should remains in document tray after storing. </param>
         /// <returns> TODO </returns>
-        public DocumentsQueryResult StoreDocumentFromBasketToFileCabinet(int documentId, string documentTrayId, FileCabinet fileCabinet, List<DocumentIndexField> indexValues, bool keepDocumentInDocumentTray = false)
+        public DocumentsQueryResult StoreDocumentFromBasketToFileCabinet(Document document, FileCabinet documentTray, FileCabinet fileCabinet, List<DocumentIndexField> indexValues, bool keepDocumentInDocumentTray = false)
         {
             var sourceDocument = new Document
             {
-                Id = documentId,
+                Id = document.Id,
                 Fields = indexValues
             };
 
@@ -237,7 +229,7 @@ namespace DocuWarePlatform.NETClient
             {
                 Documents = new List<Document>() { sourceDocument },
                 KeepSource = keepDocumentInDocumentTray,
-                SourceFileCabinetId = documentTrayId
+                SourceFileCabinetId = documentTray.Id
             };
 
             return fileCabinet.PostToTransferRelationForDocumentsQueryResult(transferInfo);
@@ -245,17 +237,17 @@ namespace DocuWarePlatform.NETClient
 
 
         /// <summary> Shows how to store a document in a file cabinet using Intellix hints. </summary>
-        /// <param name="documentId"> Id of the document to be stored. </param>
-        /// <param name="documentTrayId"> Id of the document tray (basket) document is currently stored in. </param>
+        /// <param name="document"> Id of the document to be stored. </param>
+        /// <param name="documentTray"> Id of the document tray (basket) document is currently stored in. </param>
         /// <param name="fileCabinet"> File cabinet to store document into. </param>
         /// <returns> TODO </returns>
-        public DocumentsQueryResult StoreDocumentFromBasketToFileCabinetUsingIntellixHints(int documentId, string documentTrayId, FileCabinet fileCabinet)
+        public DocumentsQueryResult StoreDocumentFromBasketToFileCabinetUsingIntellixHints(Document document, FileCabinet documentTray, FileCabinet fileCabinet)
         {
             var transferInfo = new FileCabinetTransferInfo()
             {
                 KeepSource = false,
-                SourceDocId = new List<int> { documentId },
-                SourceFileCabinetId = documentTrayId,
+                SourceDocId = new List<int> { document.Id },
+                SourceFileCabinetId = documentTray.Id,
                 FillIntellix = true
             };
 
@@ -347,16 +339,16 @@ namespace DocuWarePlatform.NETClient
 
 
         /// <summary> Shows how to staple several documents. </summary>
-        /// <param name="documentIds"> Documents to be stapled. </param>
+        /// <param name="documents"> Documents to be stapled. </param>
         /// <param name="destination"> File cabinet the stapled document should be stored into.TODO: can you staple documents in basket??? </param>
         /// <returns> Stapled document. </returns>
-        public Document StapleDocuments(List<int> documentIds, FileCabinet destination)
+        public Document StapleDocuments(List<Document> documents, FileCabinet destination)
         {
             Document mergedDocument = destination.PutToContentMergeOperationRelationForDocument
                 (
                     new ContentMergeOperationInfo()
                     {
-                        Documents = documentIds,
+                        Documents = documents.Select(document => document.Id).ToList(),
                         Operation = ContentMergeOperation.Staple,
                         Force = true
                     }
@@ -381,6 +373,7 @@ namespace DocuWarePlatform.NETClient
                     );
         }
 
+        #region private methods
 
         private Dialog getDefaultSearchDialog(FileCabinet fileCabinet)
         {
@@ -399,14 +392,17 @@ namespace DocuWarePlatform.NETClient
             return dialog.Query.PostToDialogExpressionRelationForDocumentsQueryResult(query);
         }
 
+        #endregion
 
+
+        #region Client that uses persisted cookies
         /// <summary> This is an alternative implementation creating connection if you want to use persisted cookies. </summary>
         /// <remarks> TODO </remarks>
         private void connectToPlatformServiceUsingCookies(string serverUrl, string organizationName, string userName, string userPassword)
         {
             this.clientHandler = new HttpClientHandler()
             {
-                CookieContainer = getPersistetCookies(),
+                CookieContainer = getPersistedCookies(),
                 AutomaticDecompression = System.Net.DecompressionMethods.GZip,
                 AllowAutoRedirect = true,
                 UseCookies = true
@@ -423,7 +419,7 @@ namespace DocuWarePlatform.NETClient
 
         /// <summary> Gets persisted cookies. </summary>
         /// <returns> Persisted cookies if there are any, otherwise an empty CookieContainer. </returns>
-        private System.Net.CookieContainer getPersistetCookies()
+        private System.Net.CookieContainer getPersistedCookies()
         {
             var cookies = new System.Net.CookieContainer();
 
@@ -437,5 +433,7 @@ namespace DocuWarePlatform.NETClient
         {
             // Here should be your implementation that persists cookies.
         }
+        #endregion
+
     }
 }
