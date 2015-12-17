@@ -6,20 +6,22 @@ namespace DocuWarePlatform.NETClient
 {
     class Program
     {
-        #region PBRDTEST
-        const string DocuWareServerUrl = @"https://pbrdtest.docuware.com";
-        const string userName = "User";
+        #region Here you can specify parameters of the system you are using for testing your implementation
+        const string DocuWareServerUrl = @"http://192.168.12.141/";
+        const string userName = "PlatformUser";
         const string userPassword = "user";
         const string organizationName = "Peters Engineering";
         const string basketName = "Inbox";
-        const string fileCabinetName = "Platform Workshop";
-        const string anotherFileCabinetName = "Document Pool";
+        const string fileCabinetName = "For Platform Samples Tests";
+        const string anotherFileCabinetName = "For Platform Samples Tests II";
         #endregion
 
         static PlatformClient platformClient;
 
         static void Main(string[] args)
         {
+            // Here you can try out the PlatformClient
+
             platformClient = new PlatformClient(DocuWareServerUrl, organizationName, userName, userPassword);
 
             var fileCabinet = platformClient.GetFileCabinet(fileCabinetName);
@@ -51,8 +53,7 @@ namespace DocuWarePlatform.NETClient
             } while (queryResult.NextRelationLink != null);
         }
 
-        // ToDo: try using properties of DialogExpressionCondition instead of calling Create method.
-        private List<Document> GetDocumentsThatMeetSearchCriteriaSpecified(string targetName, bool isDocumentTray)
+        static private List<Document> GetDocumentsThatMeetSearchCriteriaSpecified(string targetName, bool isDocumentTray)
         {
             var query = new DialogExpression()
             {
@@ -72,7 +73,7 @@ namespace DocuWarePlatform.NETClient
             return platformClient.GetDocumentsByQuery(targetName, isDocumentTray, query);
         }
 
-        private Document GetDocumentById(string targetName, bool isDocumentTray, int documentId)
+        static private Document GetDocumentById(string targetName, bool isDocumentTray, int documentId)
         {
             var query = new DialogExpression()
             {
@@ -86,7 +87,7 @@ namespace DocuWarePlatform.NETClient
             return platformClient.GetDocumentsByQuery(targetName, isDocumentTray, query).FirstOrDefault();
         }
 
-        private List<Document> SearchForDocumentsInSeveralFileCabinets(string firstFileCabinetName, string secondFileCabinetName)
+        static private List<Document> SearchForDocumentsInSeveralFileCabinets(string firstFileCabinetName, string secondFileCabinetName)
         {
             var query = new DialogExpression()
             {
@@ -105,15 +106,15 @@ namespace DocuWarePlatform.NETClient
             return platformClient.GetDocumentsByQuery(firstFileCabinetName, isDocumentTray: false, query: query);
         }
 
-        private void StoreDocumentLocatedInDocumentTrayIntoFileCabinet(string documentTrayName, string fileCabinetName, int documentId)
+        static private void StoreDocumentLocatedInDocumentTrayIntoFileCabinet(string documentTrayName, string fileCabinetName, int documentId)
         {
             var document = GetDocumentById(documentTrayName, true, documentId);
             var documentTray = platformClient.GetDocumentTray(documentTrayName);
             var fileCabinet = platformClient.GetFileCabinet(fileCabinetName);
             var indexValues = new List<DocumentIndexField>
             {
-                DocumentIndexField.Create("COMPANY", "SAGE"),
-                DocumentIndexField.Create("CONTACT", "Elena"),
+                DocumentIndexField.Create("COMPANY", "Springfield Nuclear Power Plant"),
+                DocumentIndexField.Create("CONTACT", "Homer"),
                 DocumentIndexField.Create("SUBJECT", "Workshop"),
                 DocumentIndexField.Create("DOCTYPE", "Example"),
                 DocumentIndexField.Create("DATE", System.DateTime.Now),
@@ -122,7 +123,7 @@ namespace DocuWarePlatform.NETClient
             var queryResult = platformClient.StoreDocumentFromBasketToFileCabinet(document, documentTray, fileCabinet, indexValues);
         }
 
-        private void StoreDocumentLocatedInDocumentTrayIntoFileCabinetUsingIntellixHints(string documentTrayName, string fileCabinetName, int documentId)
+        static private void StoreDocumentLocatedInDocumentTrayIntoFileCabinetUsingIntellixHints(string documentTrayName, string fileCabinetName, int documentId)
         {
             DocumentsQueryResult queryResult;
             var documentTray = platformClient.GetDocumentTray(documentTrayName);
@@ -151,7 +152,7 @@ namespace DocuWarePlatform.NETClient
             }
         }
 
-        private DocumentIndexFields ChangeIndexValuesForSingleDocument(Document document)
+        static private void ChangeIndexValuesForSingleDocument(Document document)
         {
             var indexValues = new List<DocumentIndexField>
             {
@@ -160,10 +161,10 @@ namespace DocuWarePlatform.NETClient
                 DocumentIndexField.Create("STATUS", "Changed")
             };
 
-            return platformClient.ChangeIndexValues(document, indexValues);
+            var result = platformClient.ChangeIndexValues(document, indexValues);
         }
 
-        private List<BatchUpdateResultItem> ChangeIndexValuesForSeveralDocumentsAtOnce(string fileCabinetName)
+        static private void ChangeIndexValuesForSeveralDocumentsAtOnce(string fileCabinetName)
         {
             // File cabinet documents are stored in.
             var fileCabinet = platformClient.GetFileCabinet(fileCabinetName);
@@ -173,8 +174,8 @@ namespace DocuWarePlatform.NETClient
                 Operation = DialogExpressionOperation.And,
                 Condition = new List<DialogExpressionCondition>()
                 {
-                    DialogExpressionCondition.Create(fieldName: "DWSTOREUSER", value: userName),
-                    DialogExpressionCondition.Create(fieldName: "TOTAL_EFFORT", valueFrom: "10", valueTo: "50")
+                    DialogExpressionCondition.Create(fieldName: "DOCTYPE", value: "Test Page"),
+                    DialogExpressionCondition.Create(fieldName: "COMPANY", value: "Springfield Nuclear Power Plant")
                 }
             };
 
@@ -184,29 +185,12 @@ namespace DocuWarePlatform.NETClient
                 DocumentIndexField.Create("DATE", System.DateTime.Now),
             };
 
-            // Check which data the return value of ChangeIndexValuesInBatch() contains!
+            // Check which data the return value contains!
             // It could be useful for your implementation; especially the property ErrorMessage.
-            return platformClient.ChangeIndexValuesInBatch(fileCabinet, query, indexValues);
+            var result = platformClient.ChangeIndexValuesInBatch(fileCabinet, query, indexValues);
         }
 
-        private void SplitDocument (string documentTrayName, int documentId)
-        {
-            // Basket the document is currently stored into.
-            var documentTray = platformClient.GetDocumentTray(documentTrayName);
-            var documentToSplit = GetDocumentById(documentTrayName, true, documentId);
-
-            platformClient.SplitDocument(documentToSplit, new List<int> { 2 }, documentTray);
-        }
-
-        private Document MergeTwoDocuments(string documentTrayName, int documentIdFirst, int documentIdSecond)
-        {
-            // Basket the document is currently stored into.
-            var documentTray = platformClient.GetDocumentTray(documentTrayName);
-
-            return platformClient.ClipDocuments(new List<int> { documentIdFirst, documentIdSecond}, documentTray);
-        }
-
-        private void DownloadDocumentThumbnail(Document document, string thumbmailFilePath)
+        static private void DownloadDocumentThumbnail(Document document, string thumbmailFilePath)
         {
             var thumbnail = document.GetStreamFromThumbnailRelation();
             using (var thumbnailFile = System.IO.File.Create(thumbmailFilePath))
@@ -215,7 +199,7 @@ namespace DocuWarePlatform.NETClient
             }
         }
 
-        private void DeleteDocuments(List<Document> documentsToDelete)
+        static private void DeleteDocuments(List<Document> documentsToDelete)
         {
             foreach (var document in documentsToDelete)
                 document.DeleteSelfRelation();

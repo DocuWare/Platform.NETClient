@@ -1,7 +1,6 @@
 ﻿using DocuWare.Platform.ServerClient;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 
@@ -17,8 +16,10 @@ namespace DocuWarePlatform.NETClient
         ServiceConnection connector;
         Organization org;
 
+        const string urlFormatString = @"{0}/docuware/platform";
 
-        /// <summary> Constructor. </summary>
+
+        /// <summary> Constructor creating connection using DocuWare user's credential. </summary>
         /// <param name="serverUrl"> The URL of the server Platform is running on. </param>
         /// <param name="organizationName"> Name of the organization you want the client to be connected to.</param>
         /// <param name="userName"> User to use when connecting to the organization specified.</param>
@@ -31,12 +32,39 @@ namespace DocuWarePlatform.NETClient
         public PlatformClient(string serverUrl, string organizationName, string userName, string userPassword)
         {
 
-            this.connector = ServiceConnection.Create(new System.Uri(String.Format("{0}/docuware/platform", serverUrl)),
+            this.connector = ServiceConnection.Create(new System.Uri(String.Format(urlFormatString, serverUrl)),
                                                       userName: userName,
                                                       password: userPassword,
                                                       organization: organizationName);
 
             this.org = this.connector.Organizations[0];
+        }
+
+        /// <summary> Constructor creating connection using token. </summary>
+        /// <param name="serverUrl"> The URL of the server Platform is running on. </param>
+        /// <param name="token"> Token that has been created by GetMultiusageToken() method or a single usage one. </param>
+        public PlatformClient(string serverUrl, string token)
+        {
+
+            this.connector = ServiceConnection.Create(new System.Uri(String.Format(urlFormatString, serverUrl)), token);
+
+            this.org = this.connector.Organizations[0];
+        }
+
+
+        /// <summary> This token will allows you to login with the same user credentials later. </summary>
+        /// <param name="lifetime"> Defines the time span after that the token will expire. </param>
+        /// <returns> Token created. </returns>
+        public string GetMultiusageToken(TimeSpan lifetime)
+        {
+            return this.org.PostToLoginTokenRelationForString(
+                        new TokenDescription()
+                        {
+                            TargetProducts = new List<DWProductTypes> { DWProductTypes.PlatformService },
+                            Usage = TokenUsage.Multi,
+                            Lifetime = lifetime.ToString()
+                        }
+                    );
         }
 
 
@@ -138,7 +166,7 @@ namespace DocuWarePlatform.NETClient
         /// <param name="isDocumentTray"> Specifies if the target is a document tray (basket). </param>
         /// <param name="start"> The number of documents to be skipped, that is, the result list does not contain the first "start" documents. </param>
         /// <param name="maxCount"> The maximum number of items per result page. The server returns at most maxCount items per page. The actual number of items returned can be smaller.</param>
-        /// <returns> TODO </returns>
+        /// <returns> Data structure that contains list of the documents and means in order to get to the next page. </returns>
         public DocumentsQueryResult GetDocumentsUsingPaging(string targetName, bool isDocumentTray, int start = 0, int maxCount = 3)
         {
             var target = isDocumentTray ? GetDocumentTray(targetName) : GetFileCabinet(targetName);
@@ -162,12 +190,19 @@ namespace DocuWarePlatform.NETClient
 
 
         /// <summary> Moves the document from file cabinet to document tray. </summary>
-        /// <remarks> This implementation does not preserve index values when moving the document. </remarks>
+        /// <remarks>
+        /// This implementation does not preserve index values when moving the document.
+        /// 
+        /// The instance of the document that you have used when calling this method doesn't contain valid data anymore.
+        /// Use the document that is returned as part of DocumentQueryResult in order to get valid data.
+        /// </remarks>
         /// <param name="document"> Document to be moved. </param>
         /// <param name="fileCabinet"> File cabinet where document is currently located. </param>
         /// <param name="documentTray"> Document tray document has to be moved into. </param>
-        /// <returns> TODO </returns>
-        public DocumentsQueryResult MoveDocumentFromFileCabinetToBasketDropIndexValues(Document document, FileCabinet fileCabinet, FileCabinet documentTray)
+        /// <returns>
+        /// DocumentQueryResult that allows you access to the document you have just moved.
+        /// </returns>
+        public DocumentsQueryResult MoveDocumentFromFileCabinetToBasketAndDropIndexValues(Document document, FileCabinet fileCabinet, FileCabinet documentTray)
         {
             var sourceDocument = new Document
             {
@@ -184,19 +219,24 @@ namespace DocuWarePlatform.NETClient
                 SourceFileCabinetId = fileCabinet.Id
             };
 
-            //
-            // All index values, that were set in file cabinet, will get lost here!
-            //
+            // All index values that were set in file cabinet will get lost here!
             return documentTray.PostToTransferRelationForDocumentsQueryResult(transferInfo);
         }
 
 
         /// <summary> Moves the document from file cabinet to document tray. </summary>
-        /// <remarks> This implementation preserves index values when moving the document. </remarks>
+        /// <remarks>
+        /// This implementation preserves index values when moving the document.
+        /// 
+        /// The instance of the document that you have used when calling this method doesn't contain valid data anymore.
+        /// Use the document that is returned as part of DocumentQueryResult in order to get valid data.
+        /// </remarks>
         /// <param name="document"> Document to be moved. </param>
         /// <param name="fileCabinet"> File cabinet where document is currently located. </param>
         /// <param name="documentTray"> Document tray document has to be moved into. </param>
-        /// <returns> TODO </returns>
+        /// <returns>
+        /// DocumentQueryResult that allows you access to the document you have just moved.
+        /// </returns>
         public DocumentsQueryResult MoveDocumentFromFileCabinetToBasket(Document document, FileCabinet fileCabinet, FileCabinet documentTray)
         {
             var transferInfo = new FileCabinetTransferInfo()
@@ -210,13 +250,19 @@ namespace DocuWarePlatform.NETClient
         }
 
 
-        /// <summary> Shows how to store a document into file cabinet using index values provided. </summary>
+        /// <summary> Stores a document into file cabinet using index values provided. </summary>
+        /// <remarks>
+        /// The instance of the document that you have used when calling this method doesn't contain valid data anymore.
+        /// Use the document that is returned as part of DocumentQueryResult in order to get valid data.
+        /// </remarks>
         /// <param name="document"> Id of the document to be stored. </param>
         /// <param name="documentTray"> Document tray (basket) document is currently stored in. </param>
         /// <param name="fileCabinet"> File cabinet to store document into. </param>
         /// <param name="indexValues"> Index values to apply to the document when storing. </param>
         /// <param name="keepDocumentInDocumentTray"> Specifies if document should remains in document tray after storing. </param>
-        /// <returns> TODO </returns>
+        /// <returns>
+        /// DocumentQueryResult that allows you access to the document you have just moved.
+        /// </returns>
         public DocumentsQueryResult StoreDocumentFromBasketToFileCabinet(Document document, FileCabinet documentTray, FileCabinet fileCabinet, List<DocumentIndexField> indexValues, bool keepDocumentInDocumentTray = false)
         {
             var sourceDocument = new Document
@@ -236,11 +282,16 @@ namespace DocuWarePlatform.NETClient
         }
 
 
-        /// <summary> Shows how to store a document in a file cabinet using Intellix hints. </summary>
+        /// <remarks>
+        /// The instance of the document that you have used when calling this method doesn't contain valid data anymore.
+        /// Use the document that is returned as part of DocumentQueryResult in order to get valid data.
+        /// </remarks>
         /// <param name="document"> Id of the document to be stored. </param>
         /// <param name="documentTray"> Id of the document tray (basket) document is currently stored in. </param>
         /// <param name="fileCabinet"> File cabinet to store document into. </param>
-        /// <returns> TODO </returns>
+        /// <returns>
+        /// DocumentQueryResult that allows you access to the document you have just moved.
+        /// </returns>
         public DocumentsQueryResult StoreDocumentFromBasketToFileCabinetUsingIntellixHints(Document document, FileCabinet documentTray, FileCabinet fileCabinet)
         {
             var transferInfo = new FileCabinetTransferInfo()
@@ -255,9 +306,9 @@ namespace DocuWarePlatform.NETClient
         }
 
 
-        /// <summary> Shows how to change index values of a document. </summary>
         /// <param name="document"> Document who's index values should be changed. </param>
         /// <param name="indexValues"> New index values. </param>
+        /// <exception cref="DocuWare.Services.Http.Client.HttpClientRequestException"> Thrown if invalid index value provided. </exception>
         /// <returns> Document's index values after performing this operation. </returns>
         public DocumentIndexFields ChangeIndexValues(Document document, List<DocumentIndexField> indexValues)
         {
@@ -270,12 +321,21 @@ namespace DocuWarePlatform.NETClient
         }
 
 
-        /// <summary> Shows how to change index values for several documents at once. </summary>
-        /// <remarks> Runs the query and change index values for each document found. </remarks>
-        /// <param name="fileCabinet"> File cabinet to search documents in. TODO: also document tray?</param>
+        /// <summary> Changes index values for several documents stored in a file cabinet. </summary>
+        /// <remarks>
+        /// Runs the query and change index values for each document found.
+        /// 
+        /// The instance of the document that you have used when calling this method doesn't contain valid data anymore.
+        /// Use the document that is returned as part of BatchUpdateResultItem in order to get valid data.
+        /// Additionally you can check property ErrorMessage of BatchUpdateResultItem in order to make sure that the operation was successful.
+        /// This property will contain error message if you try to provided an invalid index value.
+        /// 
+        /// If some of the index values provided could not be set for some reason all documents will remain unchanged.
+        /// </remarks>
+        /// <param name="fileCabinet"> File cabinet to search documents in. </param>
         /// <param name="query"> Query specifying documents who's index values should be changed. </param>
         /// <param name="indexValues"> Index values to change. </param>
-        /// <returns> TODO </returns>
+        /// <returns> List of BatchUpdateResultItem each of them containing changed document and an error message if index value(s) could not be changed. </returns>
         public List<BatchUpdateResultItem> ChangeIndexValuesInBatch(FileCabinet fileCabinet, DialogExpression query, List<DocumentIndexField> indexValues)
         {
             var searchDialog = getDefaultSearchDialog(fileCabinet);
@@ -294,86 +354,71 @@ namespace DocuWarePlatform.NETClient
         }
 
 
-        /// <summary> Shows how to clip several documents. </summary>
-        /// <param name="documentIds"> Documents to be clipped. </param>
-        /// <param name="target"> File cabinet to where the single documents are currently stored. TODO: can you clip documents in basket? </param>
-        /// <returns> Single document after clipping. </returns>
-        public Document ClipDocuments(List<int> documentIds, FileCabinet target)
+        /// <param name="documentIds"> Ids of documents to be stapled. </param>
+        /// <param name="target"> File cabinet or document tray (basket) documents are stored in </param>
+        /// <returns> A single document representing stapled document. </returns>
+        public Document StapleDocuments(List<int> documentIds, FileCabinet target)
         {
-            Document mergedDocument = target.PutToContentMergeOperationRelationForDocument
-                (
-                    new ContentMergeOperationInfo()
-                    {
-                        Documents = documentIds,
-                        Operation = ContentMergeOperation.Clip,
-                        Force = true
-                    }
-                );
-            return mergedDocument;
-        }
-
-
-        /// <summary> Shows how to split document into several parts. </summary>
-        /// <param name="document"> Document to be split. </param>
-        /// <param name="pages"> TODO ??? </param>
-        /// <param name="destination"> File cabinet the document is currently stored into.  TODO: can you split documents in basket??? </param>
-        /// <returns> TODO </returns>
-        public DocumentsQueryResult SplitDocument(Document document, List<int> pages, FileCabinet destination)
-        {
-            if (document.ContentDivideOperationRelationLink == null)
-                document = document.GetDocumentFromSelfRelation();
-
-            DocumentsQueryResult result =
-                document.PutToContentDivideOperationRelationForDocumentsQueryResult
-                (
-                    new ContentDivideOperationInfo()
-                    {
-                        Force = true,
-                        Operation = ContentDivideOperation.Split,
-                        Pages = pages,
-                        ResultNames = new List<string> { "split document" }
-                    }
-                );
-            return result;
-        }
-
-
-        /// <summary> Shows how to staple several documents. </summary>
-        /// <param name="documents"> Documents to be stapled. </param>
-        /// <param name="destination"> File cabinet the stapled document should be stored into.TODO: can you staple documents in basket??? </param>
-        /// <returns> Stapled document. </returns>
-        public Document StapleDocuments(List<Document> documents, FileCabinet destination)
-        {
-            Document mergedDocument = destination.PutToContentMergeOperationRelationForDocument
-                (
-                    new ContentMergeOperationInfo()
-                    {
-                        Documents = documents.Select(document => document.Id).ToList(),
-                        Operation = ContentMergeOperation.Staple,
-                        Force = true
-                    }
-                );
-            return mergedDocument;
-        }
-
-
-        /// <summary> This token will allows you to login with the same user credentials later. </summary>
-        /// <param name="lifetime"> Defines the time span after that the token will expire. </param>
-        /// <returns> Token created. </returns>
-        /// <remarks> TODO: what is the use case for that? </remarks>
-        public string GetMultiusageToken(TimeSpan lifetime)
-        {
-            return this.org.PostToLoginTokenRelationForString(
-                        new TokenDescription()
+            return target.PutToContentMergeOperationRelationForDocument
+                    (
+                        new ContentMergeOperationInfo()
                         {
-                            TargetProducts = new List<DWProductTypes> { DWProductTypes.PlatformService },
-                            Usage = TokenUsage.Multi,
-                            Lifetime = lifetime.ToString()
+                            Documents = documentIds,
+                            Operation = ContentMergeOperation.Staple,
+                            Force = true
                         }
                     );
         }
 
-        #region private methods
+
+        /// <param name="documentIds"> Ids of documents to be clipped. </param>
+        /// <param name="target"> File cabinet or document tray (basket) documents are stored in. </param>
+        /// <returns> Single document after clipping. </returns>
+        public Document ClipDocuments(List<int> documentIds, FileCabinet target)
+        {
+            return target.PutToContentMergeOperationRelationForDocument
+                    (
+                        new ContentMergeOperationInfo()
+                        {
+                            Documents = documentIds,
+                            Operation = ContentMergeOperation.Clip,
+                            Force = true
+                        }
+                    );
+        }
+
+
+        /// <param name="document"> Document to be split. </param>
+        /// <param name="pages"> Defines at which page document should be split. This page will belongs to the first part of document. </param>
+        /// <param name="documentNames"> Defines the title of the second part of the split document. The first part will keep the title of the original document. </param>
+        /// <param name="destination"> File cabinet or document tray (basket) the document is currently stored into. </param>
+        /// <remarks>
+        /// Platform API is prepared for splitting document in more than two parts at once, that's why you have to proved list of pages and list of names.
+        /// Unfortunately it has not been implemented, yet.
+        /// So currently, you only can split a document in two parts, means both list must not contain more than one element.
+        /// </remarks>
+        /// <returns>
+        /// DocumentQueryResult that allows you access to document created when splitting.
+        /// </returns>
+        public DocumentsQueryResult SplitDocument(Document document, List<int> pages, List<string> documentNames, FileCabinet destination)
+        {
+            if (document.ContentDivideOperationRelationLink == null)
+                document = document.GetDocumentFromSelfRelation();
+
+            return  document.PutToContentDivideOperationRelationForDocumentsQueryResult
+                    (
+                        new ContentDivideOperationInfo()
+                        {
+                            Force = true,
+                            Operation = ContentDivideOperation.Split,
+                            Pages = pages,
+                            ResultNames = documentNames
+                        }
+                    );
+        }
+
+
+        #region Private methods
 
         private Dialog getDefaultSearchDialog(FileCabinet fileCabinet)
         {
@@ -383,7 +428,7 @@ namespace DocuWarePlatform.NETClient
 
         private Dialog getDefaultStoreDialog(FileCabinet fileCabinet)
         {
-            return fileCabinet.GetDialogInfosFromStoresRelation().Dialog.Where(dlg => dlg.IsDefault == true).FirstOrDefault().GetDialogFromSelfRelation();
+            return fileCabinet.GetDialogInfosFromStoresRelation().Dialog.Where(dlg => dlg.IsDefault == !fileCabinet.IsBasket).FirstOrDefault().GetDialogFromSelfRelation();
         }
 
 
@@ -395,9 +440,9 @@ namespace DocuWarePlatform.NETClient
         #endregion
 
 
-        #region Client that uses persisted cookies
+        #region How to create connection using persisted cookies
+
         /// <summary> This is an alternative implementation creating connection if you want to use persisted cookies. </summary>
-        /// <remarks> TODO </remarks>
         private void connectToPlatformServiceUsingCookies(string serverUrl, string organizationName, string userName, string userPassword)
         {
             this.clientHandler = new HttpClientHandler()
@@ -408,7 +453,7 @@ namespace DocuWarePlatform.NETClient
                 UseCookies = true
             };
 
-            this.connector = ServiceConnection.Create(new System.Uri(String.Format("{0}/docuware/platform", serverUrl)),
+            this.connector = ServiceConnection.Create(new System.Uri(String.Format(urlFormatString, serverUrl)),
                                            userName: userName,
                                            password: userPassword,
                                            organization: organizationName,
@@ -433,6 +478,7 @@ namespace DocuWarePlatform.NETClient
         {
             // Here should be your implementation that persists cookies.
         }
+
         #endregion
 
     }
