@@ -20,14 +20,14 @@ To get started:
 In order to be able to execute examples provided you need a supported version of *DocuWare* system.  
 
 ### Supported DocuWare versions
-This *Visual Studio* solution uses the *DocuWare Platform .NET API* of ***DocuWare 6.8***.  
+This implementation uses the *DocuWare Platform .NET API* of ***DocuWare 6.8***.  
 Most of the examples will also run with *DocuWare 6.5* or higher.
 
 
 ## How to Engage, Contribute and Provide Feedback
 Before you contribute, please read through the contributing and developer guides to get an idea of what kinds of pull requests we will or won't accept.
-* [Contributing Guide]()
-* [Developer Guide]()
+* [Contributing Guide](https://github.com/DocuWare/DocuWarePlatform.NETClient/wiki/Contributing-Guide)
+* [Building and Executing](https://github.com/DocuWare/DocuWarePlatform.NETClient/wiki/Building-and-Executing)
 
 You are also encouraged to start a discussion by filing an issue or creating a [gist](https://help.github.com/articles/about-gists/).
 
