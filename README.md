@@ -1,6 +1,5 @@
-<<<<<<< HEAD
-# DocuWarePlatform.NETClient
-*DocuWarePlatform.NETClient* makes it easy to start using [DocuWare Platform .NET API](http://help.docuware.com/sdk/platform).  
+# Platform.NETClient
+*Platform.NETClient* makes it easy to start using [DocuWare Platform .NET API](http://help.docuware.com/sdk/platform).  
 
 Here you will find a *Visual Studio* solution that contains a basic implemenation of a client showing how to use *Platform .NET API* and some examples showing basic operations you can do.  
 
@@ -9,7 +8,7 @@ This *Visual Studio* solution is supposed to complement examples that could be f
 Additionally, everyone is very welcome to provide missing code examples.
 
 ### Source code
-Clone the sources: `git clone https://github.com/DocuWare/DocuWarePlatform.NETClient.git`
+Clone the sources: `git clone https://github.com/DocuWare/Platform.NETClient.git`
 
 ### Building
 You need at least *Visual Studio 2012* installation of any edition.
@@ -27,14 +26,10 @@ Most of the examples will also run with *DocuWare 6.5* or higher.
 
 ## How to Engage, Contribute and Provide Feedback
 Before you contribute, please read through the contributing and developer guides to get an idea of what kinds of pull requests we will or won't accept.
-* [Contributing Guide](https://github.com/DocuWare/DocuWarePlatform.NETClient/wiki/Contributing-Guide)
-* [Building and Executing](https://github.com/DocuWare/DocuWarePlatform.NETClient/wiki/Building-and-Executing)
+* [Contributing Guide](https://github.com/DocuWare/Platform.NETClient/wiki/Contributing-Guide)
+* [Building and Executing](https://github.com/DocuWare/Platform.NETClient/wiki/Building-and-Executing)
 
 You are also encouraged to start a discussion by filing an issue or creating a [gist](https://help.github.com/articles/about-gists/).
 
 ## License
 *DocuWare Platform .NET Client* proudly uses the [MIT License](LICENSE).
-=======
-# Platform.NETClient
-This repository is currently under construction and is going to contain a sample of the client implementation using DocuWare Platform .NET API
->>>>>>> c6e57e3781981221958ea5e1da970ce83b55b47d
