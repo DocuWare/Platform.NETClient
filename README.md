@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DocuWarePlatform.NETClient
 *DocuWarePlatform.NETClient* makes it easy to start using [DocuWare Platform .NET API](http://help.docuware.com/sdk/platform).  
 
@@ -33,3 +34,7 @@ You are also encouraged to start a discussion by filing an issue or creating a [
 
 ## License
 *DocuWare Platform .NET Client* proudly uses the [MIT License](LICENSE).
+=======
+# Platform.NETClient
+This repository is currently under construction and is going to contain a sample of the client implementation using DocuWare Platform .NET API
+>>>>>>> c6e57e3781981221958ea5e1da970ce83b55b47d
