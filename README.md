@@ -1,5 +1,5 @@
 # Platform.NETClient
-*Platform.NETClient* makes it easy to start using [DocuWare Platform .NET API](http://help.docuware.com/sdk/platform).  
+*Platform.NETClient* makes it easy to start using [DocuWare Platform .NET API](https://developer.docuware.com/dotNet/66b2ed1e-2aef-452a-97cd-5014bbf0242b.html).  
 
 Here you will find a *Visual Studio* solution that contains a basic implemenation of a client showing how to use *Platform .NET API* and some examples showing basic operations you can do.  
 
@@ -20,7 +20,7 @@ To get started:
 In order to be able to execute examples provided you need a supported version of *DocuWare* system.  
 
 ### Supported DocuWare versions
-This implementation uses the *DocuWare Platform .NET API* of ***DocuWare 6.8***.  
+This implementation uses the *DocuWare Platform .NET API* of ***DocuWare 7.1***.  
 Most of the examples will also run with *DocuWare 6.5* or higher.
 
 
